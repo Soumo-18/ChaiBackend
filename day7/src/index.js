@@ -8,7 +8,21 @@ dotenv.config({
     path:'./env'
 })
 
-connectDB()
+connectDB() // whenever a asynchronour method completes it returns a promise 
+  .then(()=>{
+    //listen for express app error before starting the server 
+    app.on('error',(error)=>{
+        console.error("Express App Error", error)
+        throw error
+    })
+    app.listen(process.env.PORT ||8000 , () => {
+        console.log(`Server is Running at PORT ${process.env.PORT || 8000}`)
+    }) 
+  })
+   .catch((err)=>{
+    console.log("|MondoDB Connection Failed")
+    process.exit(1)
+   })
 
 
 
