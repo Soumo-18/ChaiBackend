@@ -3,9 +3,9 @@ import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import { DB_NAME } from './constants.js'
 import connectDB from './db/index.js'
-
+import { app } from './app.js'
 dotenv.config({
-    path:'./env'
+    path:'./.env'
 })
 
 connectDB() // whenever a asynchronour method completes it returns a promise 
@@ -20,7 +20,7 @@ connectDB() // whenever a asynchronour method completes it returns a promise
     }) 
   })
    .catch((err)=>{
-    console.log("|MondoDB Connection Failed")
+    console.log("MongoDB Connection Failed",err)
     process.exit(1)
    })
 
