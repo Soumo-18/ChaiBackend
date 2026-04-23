@@ -20,6 +20,13 @@ app.use(express.static('public')) //store file,folder
 app.use(cookieParser())
 
 
+//routes import
+import userRouter from './routes/user.routes.js'
+
+
+//routes decalration
+app.use('/api/v1/users', userRouter)  //since we separate router, now to use router we have to use middleware
+//http://localhost:8000/api/v1/users/register
 
 
 
