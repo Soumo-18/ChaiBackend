@@ -53,12 +53,19 @@ const userSchema = new Schema(
     {timestamps:true})
 
 // userSchema.pre("save", () => {} )  // Since in Arrow function we can't have this ref we dont use this
-userSchema.pre("save", async function(next){
-    if(!this.isModified("password")) return next()
+// userSchema.pre("save", async function(next){
+//     if(!this.isModified("password")) return next()
 
-    this.password = await bcrypt.hash(this.password, 10)
-    next()
-})
+//     this.password = await bcrypt.hash(this.password, 10)
+//     next()
+// })
+userSchema.pre("save", async function () {
+    // If the password wasn't modified, just return to move on
+    if (!this.isModified("password")) return;
+
+    // Await the hashing process (Mongoose will wait for this automatically)
+    this.password = await bcrypt.hash(this.password, 10);
+});
 userSchema.methods.isPasswordCorrect = async function (password) {
    return await  bcrypt.compare(password,this.password)  //returns true / false 
 }
@@ -87,7 +94,7 @@ userSchema.methods.generateRefreshToken = function(){
         },
          process.env.REFRESH_TOKEN_SECRET,
           {
-            expiresIn: REFRESH_TOKEN_EXPIRY
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
           }
     )
 }

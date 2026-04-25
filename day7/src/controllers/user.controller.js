@@ -35,13 +35,13 @@ const registerUser = asyncHandler ( async(req,res) => {
         throw new ApiError(400, "All Fields Are Required")
     }
 
-    console.log( 'Req.Body: ' ,req.body)
+    // console.log( 'Req.Body: ' ,req.body)
 
     const existedUser = await User.findOne({          //this return whatever the 1st document jo match karta hai is username email ko
         $or: [ { username }, { email } ] //$or: [{},{}] -> this is or parameter we check as many object as we want to
     })
 
-    console.log( 'Existing User: ' ,existedUser)
+    // console.log( 'Existing User: ' ,existedUser)
 
     if(existedUser){
          throw new ApiError(409, "User with email or username already exists")
@@ -53,7 +53,7 @@ const registerUser = asyncHandler ( async(req,res) => {
     
     console.log("Multer req.files",req.files)
 
-    const avatarLocalPath = req.files?.avatar[0]?.path
+    const avatarLocalPath = req.files?.avatar?.[0]?.path
 
     // const coverImageLocalPath = req.files?.coverImage[0]?.path
     
@@ -67,19 +67,24 @@ const registerUser = asyncHandler ( async(req,res) => {
         throw new ApiError(400, 'Avatar File is Required')
     }
 
+    //upload avatar
     const avatar = await uploadOnCloudinary(avatarLocalPath)
-
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+    //only try to upload cover image if path exists
+    let coverImage
+    if(coverImageLocalPath){
+        coverImage = await uploadOnCloudinary(coverImageLocalPath)
+    }
+    // const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
     if(!avatar) {
-        throw new ApiError(400, 'Avatar File is Required')
+        throw new ApiError(400, 'Avatar upload failed. Check Cloudinary config.')
     }
 
     //entry in db
     const user = await User.create({
         fullName,
         avatar: avatar.url,
-        coverImage:coverImage?.url || " ",
+        coverImage:coverImage?.url || "",
         email,
         password,
         username: username.toLowerCase()
