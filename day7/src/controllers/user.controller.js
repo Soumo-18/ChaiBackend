@@ -362,10 +362,93 @@ const  updateUserCoverImage = asyncHandler ( async (req,res) => {
     
 })
 
+const getUserChannelProfile = asyncHandler( async(req,res) => {
+    
+    const { username } = req.params
 
+    if(!username?.trim()) throw new ApiError(400, "Username is Missing") ;
 
+    // await User.find({username}) instead we can use aggregation pipeline
+
+    const channel = await User.aggregate( [
+        {
+            $match: {
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup:{
+                from:"subscriptions", // In db model ->Subscription-> subscriptions
+                localField:"_id",
+                foreignField:"channel",
+                as:"subscribers"
+            }
+        },
+        {
+            $lookup:{
+                from:"subscriptions",
+                localField:"_id",
+                foreignField:"subscriber",
+                as:"subscribedTo"
+            }
+        },
+        {
+            $addFields:{
+                subscribersCount:{
+                    $size: "$subscribers"
+                },
+                channelsSubscribedToCount:{
+                    $size:"$subscribedTo"
+                },
+                isSubscribed:{
+                    $cond:{
+                        if:{$in: [req.user?._id || null, "$subscribers.subscriber" ]}, //$in can check inside array and objects
+                        then:true,
+                        else:false
+
+                    }
+                }
+            }
+        },
+        {
+            $project:{
+                fullName:1,
+                username:1,
+                subscribersCount:1,
+                channelsSubscribedToCount:1,
+                isSubscribed:1,
+                avatar:1,
+                coverImage:1,
+                email:1
+
+            }
+        }
+    ] )
+    
+    if(!channel?.length) throw new ApiError(404,"Channel Does Not Exist");
+
+    
+    console.log("Channel : ", channel[0])// [
+        //   {
+            //     "_id": "65b8e9f5c2b3a1d9e4f00123",
+            //     "fullName": "John Doe",
+            //     "username": "johndoe",
+            //     "email": "john@example.com",
+            //     "avatar": "http://res.cloudinary.com/.../avatar.jpg",
+            //     "coverImage": "http://res.cloudinary.com/.../cover.jpg",
+            //     "subscribersCount": 1250,
+            //     "channelsSubscribedToCount": 45,
+            //     "isSubscribed": false
+            //   }
+            // ]
+            //aggregate() method, the return type is always an array, unlike findOne() or findById() which return a single object.
+            //the channel variable will contain an Array with a single object (assuming the username exists in the database).
+    return res.status(200).json(new ApiResponse(200, channel[0], "User Channel Fetched Successfully"))
+
+})
 
 
 export {registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser,
-     updateAccountDetails , updateUserAvatar, updateUserCoverImage
+     updateAccountDetails , updateUserAvatar, updateUserCoverImage,
+     getUserChannelProfile
 }
