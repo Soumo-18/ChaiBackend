@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/apiResponse.js";
 import { User } from "../models/user.models.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../cloudinary.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 
 const generateAccessAndRefreshToken = async(userId) => {
@@ -269,7 +270,7 @@ const registerUser = asyncHandler ( async(req,res) => {
 
  const getCurrentUser = asyncHandler ( async (req,res) => {
     return res.status(200)
-     .json(200, req.user, "Current User Fetched Successfully")     //since in middleware we had  req.user = user 
+     .json(new ApiResponse(200, req.user, "Current User Fetched Successfully"))//since in middleware we had  req.user = user 
  })
 
 
@@ -447,8 +448,62 @@ const getUserChannelProfile = asyncHandler( async(req,res) => {
 
 })
 
+const getWatchHistory = asyncHandler( async(req,res) => {
+    const user = await User.aggregate([
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(req.user._id)                 // this will not work req.user._id
+            }
+        },
+        {
+            $lookup:{
+                from:'videos',
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchHistory",
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",
+                            pipeline:[
+                                {
+                                    $project:{
+                                        fullName:1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                                $first:"$owner"   //since we owner in that we get array in that array 1st projection we get  "$project:{fullName:1,...}" by doing this $first:"$owner" we get object and after that . user get all values, easier for frontend
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    if(!user?.length) throw new ApiError(404, "User Not Found");
+
+
+    return res.status(200).json(
+        new ApiResponse(200, 
+            user[0].watchHistory,
+            "Watch History Fetched Successfully"
+        )
+    )
+})
+
 
 export {registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser,
      updateAccountDetails , updateUserAvatar, updateUserCoverImage,
-     getUserChannelProfile
+     getUserChannelProfile, getWatchHistory,
 }
