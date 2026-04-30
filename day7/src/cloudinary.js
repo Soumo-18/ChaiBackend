@@ -30,7 +30,26 @@ const uploadOnCloudinary = async (localFilePath) => {
     }
 }
 
-export { uploadOnCloudinary };
+const deleteFromCloudinary = async(cloudinaryUrl) => {
+    try{
+        if(!cloudinaryUrl) return null;
+
+        //Extracting public_id from the URL
+        //Eg-> URL: http://res.cloudinary.com/.../image/upload/v1234567890/sample.jpg
+        //this splites the URL and grabs "sample" as the public_id
+        const public_id = cloudinaryUrl.split("/").pop().split(".")[0]
+
+        //deleting the file using public_id
+        const response = await cloudinary.uploader.destroy(public_id)
+        console.log("Old File Deleted from Cloudianry")
+        return response 
+    } catch(error){
+        console.log("Error While Deleting From Cloudinary : ", error.message)
+        return null
+    }
+}
+
+export { uploadOnCloudinary, deleteFromCloudinary };
 
 
 

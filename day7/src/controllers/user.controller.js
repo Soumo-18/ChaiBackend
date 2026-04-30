@@ -2,7 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import {ApiError} from '.././utils/apiError.js'
 import { ApiResponse } from "../utils/apiResponse.js";
 import { User } from "../models/user.models.js";
-import { uploadOnCloudinary } from "../routes/cloudinary.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../cloudinary.js";
 import jwt from "jsonwebtoken";
 
 
@@ -299,9 +299,14 @@ const updateUserAvatar = asyncHandler(async(req,res) => {
     const avatarLocalPath = req.file?.path   //in multer middleware
     if(!avatarLocalPath) throw new ApiError(400, "Avatar File is Missing");
 
+
+     //TODO: delete old image - assignment
+
     const avatar = await uploadOnCloudinary(avatarLocalPath)
 
     if(!avatar.url) throw new ApiError(400, "Error while Uploading on Avatar");
+  //GEt the OLD image url before updating the database
+  const oldAvatarUrl = req.user?.avatar
 
     const user = await User.findByIdAndUpdate(
         req.user?._id, 
@@ -312,6 +317,10 @@ const updateUserAvatar = asyncHandler(async(req,res) => {
         },
         { new: true}
     ).select("-password")
+    //Delete old image from cloudinary
+    if(oldAvatarUrl){
+        await deleteFromCloudinary(oldAvatarUrl)
+    }  
     
     return res
     .status(200)
@@ -322,9 +331,14 @@ const  updateUserCoverImage = asyncHandler ( async (req,res) => {
     const coverImageLocalPath = req.file?.path
     if(!coverImageLocalPath) throw new ApiError(400, 'Cover Image File is Missing');
 
+     //TODO: delete old image - assignment
+
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
     
     if(!coverImage.url) throw new ApiError(400,"Error While Uploading Cover Image");
+
+    //GET old cover image url
+    const oldCoverImageUrl = req.user?.coverImage
 
     const user = await User.findByIdAndUpdate(
         req.user?._id,
@@ -335,6 +349,10 @@ const  updateUserCoverImage = asyncHandler ( async (req,res) => {
         },
         {new: true}
     ).select("-password")
+
+    if(oldCoverImageUrl){
+        await deleteFromCloudinary(oldCoverImageUrl)
+    }
     
     return res
     .status(200)
